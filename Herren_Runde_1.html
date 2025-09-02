@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Lichess Tabelle</title>
+	<style type="text/css">/* Grundlayout */
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #E0D5CC;
+    margin: 0;
+    padding: 20px;
+    color: #51423D;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    margin: auto;
+    border: 1px solid #A2847A;
+    border-radius: 12px;
+    overflow-x: auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    background: #f3f3f3;
+  }
+
+  /* Tabelle kompakt + feste Spaltenbreiten (für <colgroup>) */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+    background: #f3f3f3;
+    table-layout: fixed;     /* wichtig für colgroup-Breiten */
+    font-size: 13px;         /* kompaktere Schrift */
+    line-height: 1.25;       /* engerer Zeilenabstand */
+  }
+
+  /* Tabellenkopf */
+  thead th {
+    color: #fff !important;
+    background: #A2847A;
+    font-weight: bold;
+    font-size: 13.5px;
+    padding: 6px 16px;       /* enger */
+    white-space: nowrap;
+    position: relative;      /* für Trennlinien */
+    border-bottom: 1px solid #8f6e66; /* dezente Unterkante */
+  }
+
+  /* Feine vertikale Trennlinien zwischen Header-Zellen */
+  thead th:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 22%;
+    bottom: 22%;
+    right: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.55); /* auf braun sichtbar */
+    pointer-events: none;
+  }
+
+  /* Stärkere Linie zwischen Heim- und Auswärts-Block (rechts von "Heim DWZ") */
+  thead th:nth-child(4)::after {
+    width: 2px;
+    background: rgba(255, 255, 255, 0.85);
+  }
+
+  /* Klick-Hinweis */
+  #admin-trigger { cursor: pointer; user-select: none; }
+
+  /* Tabellenzellen */
+  td {
+    padding: 6px 14px;       /* kompakter (vorher 9px 30px) */
+    text-align: center;
+    border: 1px solid #A2847A;
+    color: #51423D;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+
+  }
+
+  tbody tr:hover { background-color: #e8e8e8; }
+
+  /* Eingabeelemente kompakt */
+  select, input.cell-input {
+    font: inherit;
+    color: #51423D;
+  }
+
+  select {
+    padding: 3px 6px;
+    border-radius: 6px;
+    border: 1px solid #A2847A;
+    background: #f3f3f3;
+  }
+
+  input.cell-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    padding: 3px 2px;
+  }
+
+  input.cell-input:disabled {
+    color: #51423D;
+    opacity: 1;
+  }
+
+  input.cell-input:focus {
+    outline: 2px solid #A2847A33;
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  /* Markierungen */
+  .win { background-color: #bbf7d0 !important; }
+  .lose { background-color: #fecaca !important; }
+
+  /* Iframe-Kacheln */
+  .iframe-container {
+    max-width: 100%;
+    margin: 20px auto;
+    display: grid;
+    gap: 20px;
+  }
+
+  .iframe-box {
+    border: 1px solid #A2847A;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f3f3f3;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+
+  .iframe-title {
+    background: #A2847A;
+    padding: 10px 12px;
+    font-weight: bold;
+    border-bottom: 1px solid #A2847A;
+    text-align: center;
+    color: #fff;
+  }
+
+  /* Admin-Login Leiste */
+  #admin-login {
+    display: none;
+    margin: 12px 0;
+    text-align: center;
+  }
+
+  #admin-login input {
+    padding: 5px 8px;
+    border: 1px solid #A2847A;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  #admin-login button {
+    padding: 6px 10px;
+    margin-left: 6px;
+    border: none;
+    border-radius: 6px;
+    background: #A2847A;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  #reset-results {
+    background: #d9534f;
+    color: #fff;
+    margin-left: 8px;
+  }
+	</style>
+</head>
+<body>
+<div class="table-wrap">
+<table data-kampf-id="2025-runde-1" id="match-table"><!-- Spaltenbreiten: Name breit, Elo/DWZ schmal -->
+	<colgroup><!-- 1: Brett -->
+		<col style="width:56px;" /><!-- 2–4: Heim (Name/Elo/DWZ) -->
+		<col style="width:28%;" /><!-- Heim Name -->
+		<col style="width:72px;" /><!-- Heim Elo -->
+		<col style="width:72px;" /><!-- Heim DWZ --><!-- 5–7: Auswärts (Name/Elo/DWZ) -->
+		<col style="width:28%;" /><!-- Auswärts Name -->
+		<col style="width:72px;" /><!-- Ausw. Elo -->
+		<col style="width:72px;" /><!-- Ausw. DWZ --><!-- 8: Ergebnis -->
+		<col style="width:110px;" />
+	</colgroup>
+	<thead>
+		<tr>
+			<th>Brett</th>
+			<th>Heim</th>
+			<th>H. Elo</th>
+			<th>H. DWZ</th>
+			<th>Auswärts</th>
+			<th>A. Elo</th>
+			<th>A. DWZ</th>
+			<th id="admin-trigger" title="5× klicken zum Admin-Login">Ergebnis</th>
+		</tr>
+	</thead>
+	<tbody><!-- Kopfzeile: Teamnamen + Gesamt (Team-TDs werden gefärbt) -->
+		<tr>
+			<td>&nbsp;</td>
+			<td colspan="3" id="heim-team" style="font-weight:bold;"><input class="cell-input" disabled="disabled" id="heim-team-input" type="text" value="SV Hemer 1932" /></td>
+			<td colspan="3" id="auswaerts-team" style="font-weight:bold;"><input class="cell-input" disabled="disabled" id="ausw-team-input" type="text" value="Augsburg 1932" /></td>
+			<td id="gesamt-ergebnis" style="font-weight:bold;">0 – 0</td>
+		</tr>
+		<!-- Beispiel-Brett 1 -->
+		<tr data-board="1">
+			<td>1</td>
+			<td class="heim-name-cell"><input class="cell-input heim-name-input" disabled="disabled" type="text" value="Alber" /></td>
+			<td class="heim-elo-cell"><input class="cell-input heim-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
+			<td class="heim-dwz-cell"><input class="cell-input heim-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
+			<td class="ausw-name-cell"><input class="cell-input ausw-name-input" disabled="disabled" type="text" value="Spieler B" /></td>
+			<td class="ausw-elo-cell"><input class="cell-input ausw-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
+			<td class="ausw-dwz-cell"><input class="cell-input ausw-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
+			<td><select disabled="disabled"><option value="">-</option><option value="1-0">1:0</option><option value="0.5-0.5">0.5 : 0.5</option><option value="0-1">0:1</option> </select></td>
+		</tr>
+		<!-- Beispiel-Brett 1 -->
+		<tr data-board="2">
+			<td>2</td>
+			<td class="heim-name-cell"><input class="cell-input heim-name-input" disabled="disabled" type="text" value="Alber" /></td>
+			<td class="heim-elo-cell"><input class="cell-input heim-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
+			<td class="heim-dwz-cell"><input class="cell-input heim-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
+			<td class="ausw-name-cell"><input class="cell-input ausw-name-input" disabled="disabled" type="text" value="Spieler B" /></td>
+			<td class="ausw-elo-cell"><input class="cell-input ausw-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
+			<td class="ausw-dwz-cell"><input class="cell-input ausw-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
+			<td><select disabled="disabled"><option value="">-</option><option value="1-0">1:0</option><option value="0.5-0.5">0.5 : 0.5</option><option value="0-1">0:1</option> </select></td>
+		</tr>
+		<!-- weitere Bretter ... -->
+	</tbody>
+</table>
+</div>
+
+<div class="iframe-container">
+<div class="iframe-box">
+<div class="iframe-title">Live-Übertragung</div>
+<iframe frameborder="0" src="https://lichess.org/embed/broadcast/iii-festival-internacional-esphouses--irt-sub-1800/round-2/YwyL4K3i" style="width: 100%; aspect-ratio: 4/3;"></iframe></div>
+<!-- Admin Login -->
+
+<div id="admin-login"><input id="admin-password" placeholder="Admin-Passwort" type="password" /><button id="admin-submit">Login</button><button id="reset-results" style="display:none;">Reset Ergebnisse</button></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+  // === KONFIG ===
+  const SUPABASE_URL = "https://uzddzotzdcduoyglrekg.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6ZGR6b3R6ZGNkdW95Z2xyZWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MzE4NTUsImV4cCI6MjA3MjQwNzg1NX0.3i2KgWx8zGEgHHaFZDNybwrec3Owhajx6tTBI7iiWTA";
+  const ADMIN_PASSWORD = "Laeuferopfer2025!";
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const table = document.querySelector("#match-table");
+    const gesamt = document.getElementById("gesamt-ergebnis");
+    const heimTeamCell = document.getElementById("heim-team");
+    const auswTeamCell = document.getElementById("auswaerts-team");
+    const heimTeamInput = document.getElementById("heim-team-input");
+    const auswTeamInput = document.getElementById("ausw-team-input");
+    const resetBtn = document.getElementById("reset-results");
+
+    const selects = table.querySelectorAll("select");
+    const allInputs = table.querySelectorAll("input.cell-input");
+
+    function resolveKampfId() {
+      const qs = new URLSearchParams(location.search);
+      if (qs.get("kampf")) return qs.get("kampf");
+      if (table && table.dataset.kampfId) return table.dataset.kampfId;
+      return "default-kampf";
+    }
+    const kampfId = resolveKampfId();
+
+    let isAdmin = false;
+    let clickCount = 0;
+
+    // ===== Helpers =====
+    function parseIntOrNull(v) { const n = parseInt(v, 10); return Number.isFinite(n) ? n : null; }
+    const rowsNodeList = () => table.querySelectorAll("tbody tr[data-board]");
+
+    function collectRowData(tr) {
+      return {
+        board: Number(tr.dataset.board),
+        home_name: tr.querySelector(".heim-name-input")?.value?.trim() || null,
+        home_elo:  parseIntOrNull(tr.querySelector(".heim-elo-input")?.value),
+        home_dwz:  parseIntOrNull(tr.querySelector(".heim-dwz-input")?.value),
+        away_name: tr.querySelector(".ausw-name-input")?.value?.trim() || null,
+        away_elo:  parseIntOrNull(tr.querySelector(".ausw-elo-input")?.value),
+        away_dwz:  parseIntOrNull(tr.querySelector(".ausw-dwz-input")?.value),
+        result:    tr.querySelector("select")?.value || null,
+      };
+    }
+
+    function applyBoardRowToUI(row) {
+      const tr = table.querySelector(`tr[data-board="${row.board}"]`);
+      if (!tr) return;
+      const setVal = (selector, val) => { const el = tr.querySelector(selector); if (el && val != null) el.value = val; };
+      if (tr.querySelector("select")) tr.querySelector("select").value = row.result ?? tr.querySelector("select").value;
+      setVal(".heim-name-input", row.home_name);
+      setVal(".heim-elo-input",  row.home_elo);
+      setVal(".heim-dwz-input",  row.home_dwz);
+      setVal(".ausw-name-input", row.away_name);
+      setVal(".ausw-elo-input",  row.away_elo);
+      setVal(".ausw-dwz-input",  row.away_dwz);
+    }
+
+    // ===== DB: Header =====
+    async function ensureHeaderExists() {
+      const { data, error } = await supabaseClient
+        .from("match_headers").select("kampf_id").eq("kampf_id", kampfId).maybeSingle();
+      if (error && error.code !== "PGRST116") { console.error("[ensureHeaderExists] select:", error); return; }
+      if (!data) {
+        const { error: insErr } = await supabaseClient
+          .from("match_headers")
+          .insert({ kampf_id: kampfId, home_team: heimTeamInput.value.trim(), away_team: auswTeamInput.value.trim() });
+        if (insErr) console.error("[ensureHeaderExists] insert:", insErr);
+      }
+    }
+
+    async function loadHeader() {
+      const { data, error } = await supabaseClient
+        .from("match_headers").select("*").eq("kampf_id", kampfId).maybeSingle();
+      if (error && error.code !== "PGRST116") { console.error("[loadHeader] error:", error); return; }
+      if (data) {
+        if (data.home_team != null) heimTeamInput.value = data.home_team;
+        if (data.away_team != null) auswTeamInput.value = data.away_team;
+      }
+    }
+
+    async function saveHeader() {
+      const payload = { kampf_id: kampfId, home_team: heimTeamInput.value.trim(), away_team: auswTeamInput.value.trim() };
+      const { error } = await supabaseClient.from("match_headers").upsert(payload, { onConflict: "kampf_id" });
+      if (error) console.error("[saveHeader] error:", error);
+    }
+
+    // ===== DB: Boards =====
+    async function ensureBoardsExist() {
+      const domBoards = Array.from(rowsNodeList())
+        .map(tr => Number(tr.dataset.board)).filter(Number.isFinite);
+      if (domBoards.length === 0) return;
+
+      const { data: existing, error: selErr } = await supabaseClient
+        .from("matches").select("board").eq("kampf_id", kampfId);
+      if (selErr) { console.error("[ensureBoardsExist] select:", selErr); return; }
+
+      const have = new Set((existing ?? []).map(r => r.board));
+      const missing = [];
+      rowsNodeList().forEach(tr => {
+        const b = Number(tr.dataset.board);
+        if (!have.has(b)) missing.push({ kampf_id: kampfId, ...collectRowData(tr) });
+      });
+      if (missing.length === 0) return;
+
+      const { error: insErr } = await supabaseClient.from("matches").insert(missing);
+      if (insErr) console.error("[ensureBoardsExist] insert:", insErr);
+    }
+
+    async function loadBoards() {
+      const { data, error } = await supabaseClient
+        .from("matches").select("*").eq("kampf_id", kampfId).order("board", { ascending: true });
+      if (error) { console.error("[loadBoards] error:", error); return; }
+      (data ?? []).forEach(applyBoardRowToUI);
+    }
+
+    async function saveBoardRow(board) {
+      const tr = table.querySelector(`tr[data-board="${board}"]`);
+      if (!tr) return;
+      const d = collectRowData(tr);
+      const { error } = await supabaseClient
+        .from("matches").upsert({ kampf_id: kampfId, ...d }, { onConflict: "kampf_id,board" });
+      if (error) console.error("[saveBoardRow] error:", error);
+    }
+
+    // ===== UI: Punkte & Markierungen (markiert Name + Elo + DWZ) =====
+    function updateGesamt() {
+      let home = 0, away = 0;
+      rowsNodeList().forEach((row) => {
+        const sel = row.querySelector("select");
+        if (!sel) return;
+
+        const homeCells = [
+          row.querySelector(".heim-name-cell"),
+          row.querySelector(".heim-elo-cell"),
+          row.querySelector(".heim-dwz-cell"),
+        ].filter(Boolean);
+        const awayCells = [
+          row.querySelector(".ausw-name-cell"),
+          row.querySelector(".ausw-elo-cell"),
+          row.querySelector(".ausw-dwz-cell"),
+        ].filter(Boolean);
+
+        [...homeCells, ...awayCells].forEach(td => td.classList.remove("win","lose"));
+
+        switch(sel.value) {
+          case "1-0":
+            home += 1;
+            homeCells.forEach(td => td.classList.add("win"));
+            awayCells.forEach(td => td.classList.add("lose"));
+            break;
+          case "0-1":
+            away += 1;
+            homeCells.forEach(td => td.classList.add("lose"));
+            awayCells.forEach(td => td.classList.add("win"));
+            break;
+          case "0.5-0.5":
+            home += 0.5; away += 0.5;
+            break;
+        }
+      });
+
+      gesamt.textContent = 
+        (home % 1 ? home.toFixed(1) : home) + " – " + 
+        (away % 1 ? away.toFixed(1) : away);
+
+      heimTeamCell.classList.remove("win","lose");
+      auswTeamCell.classList.remove("win","lose");
+
+      const totalBoards = rowsNodeList().length;
+      const halfPoints = totalBoards / 2;
+      if (home > halfPoints) {
+        heimTeamCell.classList.add("win");
+        auswTeamCell.classList.add("lose");
+      } else if (away > halfPoints) {
+        heimTeamCell.classList.add("lose");
+        auswTeamCell.classList.add("win");
+      }
+    }
+
+    // ===== Events =====
+    // Ergebnis-Selects
+    selects.forEach((sel) => {
+      sel.addEventListener("change", () => {
+        updateGesamt();
+        if (!isAdmin) return;
+        const board = Number(sel.closest("tr").dataset.board);
+        if (Number.isFinite(board)) saveBoardRow(board);
+      });
+    });
+
+    // Alle Inputs (Namen/Elo/DWZ)
+    allInputs.forEach((inp) => {
+      inp.addEventListener("change", () => {
+        if (!isAdmin) return;
+        const tr = inp.closest("tr[data-board]");
+        if (tr) {
+          const board = Number(tr.dataset.board);
+          if (Number.isFinite(board)) saveBoardRow(board);
+        }
+      });
+    });
+
+    // Teamnamen
+    heimTeamInput.addEventListener("change", () => { if (isAdmin) saveHeader(); });
+    auswTeamInput.addEventListener("change", () => { if (isAdmin) saveHeader(); });
+
+    // 5× Klick → Admin
+    const adminTrigger = document.getElementById("admin-trigger");
+    adminTrigger.addEventListener("click", () => {
+      clickCount++;
+      if (clickCount >= 5) {
+        document.getElementById("admin-login").style.display = "block";
+        clickCount = 0;
+      }
+    });
+
+    document.getElementById("admin-submit").addEventListener("click", () => {
+      const pwd = document.getElementById("admin-password").value;
+      if (pwd === ADMIN_PASSWORD) {
+        isAdmin = true;
+        selects.forEach(s => s.disabled = false);
+        allInputs.forEach(i => i.disabled = false);
+        resetBtn.style.display = "inline-block";
+        alert("Admin-Modus aktiviert ✅");
+      } else {
+        alert("Falsches Passwort ❌");
+      }
+    });
+
+    // Reset
+    resetBtn.addEventListener("click", async () => {
+      if (!confirm("Alle Ergebnisse für diesen Kampf wirklich zurücksetzen?")) return;
+
+      const { error: e1 } = await supabaseClient.from("matches").delete().eq("kampf_id", kampfId);
+      const { error: e2 } = await supabaseClient.from("match_headers").delete().eq("kampf_id", kampfId);
+      if (e1 || e2) { console.error("[reset] error:", e1 || e2); return; }
+
+      // UI zurücksetzen
+      rowsNodeList().forEach(tr => {
+        const nameH = tr.querySelector(".heim-name-input");
+        const nameA = tr.querySelector(".ausw-name-input");
+        if (nameH) nameH.value = nameH.getAttribute("value") || "";
+        if (nameA) nameA.value = nameA.getAttribute("value") || "";
+        ["heim-elo-input","heim-dwz-input","ausw-elo-input","ausw-dwz-input"].forEach(cls => {
+          const el = tr.querySelector(`.${cls}`); if (el) el.value = "";
+        });
+        const sel = tr.querySelector("select"); if (sel) sel.value = "";
+      });
+      heimTeamInput.value = heimTeamInput.getAttribute("value") || heimTeamInput.value;
+      auswTeamInput.value = auswTeamInput.getAttribute("value") || auswTeamInput.value;
+
+      updateGesamt();
+
+      // DB wieder vorbereiten
+      await ensureHeaderExists();
+      await ensureBoardsExist();
+    });
+
+    // ===== Realtime (optional) =====
+    supabaseClient
+      .channel('matches-changes')
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'matches', filter: `kampf_id=eq.${kampfId}` },
+          () => { loadBoards().then(updateGesamt); })
+      .subscribe();
+
+    supabaseClient
+      .channel('headers-changes')
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'match_headers', filter: `kampf_id=eq.${kampfId}` },
+          () => loadHeader())
+      .subscribe();
+
+    // ===== Initial Load =====
+    (async () => {
+      await ensureHeaderExists();
+      await ensureBoardsExist();
+      await loadHeader();
+      await loadBoards();
+      updateGesamt();
+    })();
+  });
+</script></div>
+</body>
+</html>
