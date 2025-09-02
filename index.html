@@ -1,250 +1,334 @@
 <!doctype html>
 <html lang="de">
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Lichess Tabelle</title>
-	<style type="text/css">/* Grundlayout */
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #E0D5CC;
-    margin: 0;
-    padding: 20px;
-    color: #51423D;
-  }
-
-  .table-wrap {
-    max-width: 100%;
-    margin: auto;
-    border: 1px solid #A2847A;
-    border-radius: 12px;
-    overflow-x: auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    background: #f3f3f3;
-  }
-
-  /* Tabelle kompakt + feste Spaltenbreiten (für <colgroup>) */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 760px;
-    background: #f3f3f3;
-    table-layout: fixed;     /* wichtig für colgroup-Breiten */
-    font-size: 13px;         /* kompaktere Schrift */
-    line-height: 1.25;       /* engerer Zeilenabstand */
-  }
-
-  /* Tabellenkopf */
-  thead th {
-    color: #fff !important;
-    background: #A2847A;
-    font-weight: bold;
-    font-size: 13.5px;
-    padding: 6px 16px;       /* enger */
-    white-space: nowrap;
-    position: relative;      /* für Trennlinien */
-    border-bottom: 1px solid #8f6e66; /* dezente Unterkante */
-  }
-
-  /* Feine vertikale Trennlinien zwischen Header-Zellen */
-  thead th:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    top: 22%;
-    bottom: 22%;
-    right: 0;
-    width: 1px;
-    background: rgba(255, 255, 255, 0.55); /* auf braun sichtbar */
-    pointer-events: none;
-  }
-
-  /* Stärkere Linie zwischen Heim- und Auswärts-Block (rechts von "Heim DWZ") */
-  thead th:nth-child(4)::after {
-    width: 2px;
-    background: rgba(255, 255, 255, 0.85);
-  }
-
-  /* Klick-Hinweis */
-  #admin-trigger { cursor: pointer; user-select: none; }
-
-  /* Tabellenzellen */
-  td {
-    padding: 6px 14px;       /* kompakter (vorher 9px 30px) */
-    text-align: center;
-    border: 1px solid #A2847A;
-    color: #51423D;
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-
-  }
-
-  tbody tr:hover { background-color: #e8e8e8; }
-
-  /* Eingabeelemente kompakt */
-  select, input.cell-input {
-    font: inherit;
-    color: #51423D;
-  }
-
-  select {
-    padding: 3px 6px;
-    border-radius: 6px;
-    border: 1px solid #A2847A;
-    background: #f3f3f3;
-  }
-
-  input.cell-input {
-    width: 100%;
-    border: none;
-    background: transparent;
-    text-align: center;
-    padding: 3px 2px;
-  }
-
-  input.cell-input:disabled {
-    color: #51423D;
-    opacity: 1;
-  }
-
-  input.cell-input:focus {
-    outline: 2px solid #A2847A33;
-    border-radius: 6px;
-    background: #fff;
-  }
-
-  /* Markierungen */
-  .win { background-color: #bbf7d0 !important; }
-  .lose { background-color: #fecaca !important; }
-
-  /* Iframe-Kacheln */
-  .iframe-container {
-    max-width: 100%;
-    margin: 20px auto;
-    display: grid;
-    gap: 20px;
-  }
-
-  .iframe-box {
-    border: 1px solid #A2847A;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #f3f3f3;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  }
-
-  .iframe-title {
-    background: #A2847A;
-    padding: 10px 12px;
-    font-weight: bold;
-    border-bottom: 1px solid #A2847A;
-    text-align: center;
-    color: #fff;
-  }
-  .board {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      border: none;
-      display: block;
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lichess Tabelle</title>
+  <meta name="description" content="Live Schach-Match Tabelle mit Supabase Sync (Teams, Namen, Elo, DWZ, Ergebnis)">
+  <style>
+    /* Grundlayout */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #E0D5CC;
+      margin: 0;
+      padding: 20px;
+      color: #51423D;
     }
-  /* Admin-Login Leiste */
-  #admin-login {
-    display: none;
-    margin: 12px 0;
-    text-align: center;
-  }
 
-  #admin-login input {
-    padding: 5px 8px;
-    border: 1px solid #A2847A;
-    border-radius: 6px;
-    font-size: 13px;
-  }
+    .table-wrap {
+      max-width: 100%;
+      margin: auto;
+      border: 1px solid #A2847A;
+      border-radius: 12px;
+      overflow-x: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: #f3f3f3;
+    }
 
-  #admin-login button {
-    padding: 6px 10px;
-    margin-left: 6px;
-    border: none;
-    border-radius: 6px;
-    background: #A2847A;
-    color: #fff;
-    cursor: pointer;
-    font-size: 13px;
-  }
+    /* Tabelle kompakt + feste Spaltenbreiten (für <colgroup>) */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: #f3f3f3;
+      table-layout: fixed;     /* wichtig für colgroup-Breiten */
+      font-size: 13px;         /* kompaktere Schrift */
+      line-height: 1.25;       /* engerer Zeilenabstand */
+    }
 
-  #reset-results {
-    background: #d9534f;
-    color: #fff;
-    margin-left: 8px;
-  }
-	</style>
+    /* Tabellenkopf */
+    thead th {
+      color: #fff !important;
+      background: #A2847A;
+      font-weight: bold;
+      font-size: 13.5px;
+      padding: 6px 16px;       /* enger */
+      white-space: nowrap;
+      position: relative;      /* für Trennlinien */
+      border-bottom: 1px solid #8f6e66; /* dezente Unterkante */
+    }
+
+    /* Feine vertikale Trennlinien zwischen Header-Zellen */
+    thead th:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 22%;
+      bottom: 22%;
+      right: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.55); /* auf Braun sichtbar */
+      pointer-events: none;
+    }
+
+    /* Stärkere Linie zwischen Heim- und Auswärts-Block (rechts von "Heim DWZ") */
+    thead th:nth-child(4)::after {
+      width: 2px;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Linie zwischen "Brett" (1) und "Heim" (2) entfernen */
+    thead th:first-child, 
+    tbody td:first-child { 
+      border-right: none;
+    }
+    thead th:first-child::after { 
+      display: none; 
+    }
+    /* Fallback: linke Kante der "Heim"-Spalte (2) entfernen */
+    thead th:nth-child(2), 
+    tbody td:nth-child(2) {
+      border-left: none;
+    }
+
+    /* Klick-Hinweis */
+    #admin-trigger { cursor: pointer; user-select: none; }
+
+    /* Tabellenzellen */
+    td {
+      padding: 6px 14px;       /* kompakter */
+      text-align: center;
+      border: 1px solid #A2847A;
+      color: #51423D;
+      font-size: 13px;
+      /* KEINE Ellipsis im TD, sonst erscheinen "..." überall */
+      white-space: normal;
+      overflow: visible;
+    }
+
+    tbody tr:hover { background-color: #e8e8e8; }
+
+    /* Eingabeelemente kompakt */
+    select, input.cell-input {
+      font: inherit;
+      color: #51423D;
+    }
+
+    select {
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid #A2847A;
+      background: #f3f3f3;
+      max-width: 100%;
+    }
+
+    input.cell-input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: center;
+      padding: 3px 2px;
+      overflow: hidden;
+      text-overflow: ellipsis; /* Ellipsis nur in Inputs */
+      white-space: nowrap;
+    }
+
+    input.cell-input:disabled {
+      color: #51423D;
+      opacity: 1;
+    }
+
+    input.cell-input:focus {
+      outline: 2px solid #A2847A33;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    /* Markierungen */
+    .win { background-color: #bbf7d0 !important; }
+    .lose { background-color: #fecaca !important; }
+
+    /* Iframe-Kacheln */
+    .iframe-container {
+      max-width: 100%;
+      margin: 20px auto;
+      display: grid;
+      gap: 20px;
+    }
+
+    .iframe-box {
+      border: 1px solid #A2847A;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f3f3f3;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .iframe-title {
+      background: #A2847A;
+      padding: 10px 12px;
+      font-weight: bold;
+      border-bottom: 1px solid #A2847A;
+      text-align: center;
+      color: #fff;
+    }
+
+    /* Admin-Login Leiste */
+    #admin-login {
+      display: none;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    #admin-login input {
+      padding: 5px 8px;
+      border: 1px solid #A2847A;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    #admin-login button {
+      padding: 6px 10px;
+      margin-left: 6px;
+      border: none;
+      border-radius: 6px;
+      background: #A2847A;
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #reset-results {
+      background: #d9534f;
+      color: #fff;
+      margin-left: 8px;
+      display: none;
+    }
+    #hard-reset {
+      background: #9b1c1c;
+      color: #fff;
+      margin-left: 8px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
 <div class="table-wrap">
-<table data-kampf-id="2025-runde-1" id="match-table"><!-- Spaltenbreiten: Name breit, Elo/DWZ schmal -->
-	<colgroup><!-- 1: Brett -->
-		<col style="width:56px;" /><!-- 2–4: Heim (Name/Elo/DWZ) -->
-		<col style="width:28%;" /><!-- Heim Name -->
-		<col style="width:72px;" /><!-- Heim Elo -->
-		<col style="width:72px;" /><!-- Heim DWZ --><!-- 5–7: Auswärts (Name/Elo/DWZ) -->
-		<col style="width:28%;" /><!-- Auswärts Name -->
-		<col style="width:72px;" /><!-- Ausw. Elo -->
-		<col style="width:72px;" /><!-- Ausw. DWZ --><!-- 8: Ergebnis -->
-		<col style="width:110px;" />
-	</colgroup>
-	<thead>
-		<tr>
-			<th>Brett</th>
-			<th>Heim</th>
-			<th>H. Elo</th>
-			<th>H. DWZ</th>
-			<th>Auswärts</th>
-			<th>A. Elo</th>
-			<th>A. DWZ</th>
-			<th id="admin-trigger" title="5× klicken zum Admin-Login">Ergebnis</th>
-		</tr>
-	</thead>
-	<tbody><!-- Kopfzeile: Teamnamen + Gesamt (Team-TDs werden gefärbt) -->
-		<tr>
-			<td>&nbsp;</td>
-			<td colspan="3" id="heim-team" style="font-weight:bold;"><input class="cell-input" disabled="disabled" id="heim-team-input" type="text" value="SV Hemer 1932" /></td>
-			<td colspan="3" id="auswaerts-team" style="font-weight:bold;"><input class="cell-input" disabled="disabled" id="ausw-team-input" type="text" value="Augsburg 1932" /></td>
-			<td id="gesamt-ergebnis" style="font-weight:bold;">0 – 0</td>
-		</tr>
-		<!-- Beispiel-Brett 1 -->
-		<tr data-board="1">
-			<td>1</td>
-			<td class="heim-name-cell"><input class="cell-input heim-name-input" disabled="disabled" type="text" value="Alber" /></td>
-			<td class="heim-elo-cell"><input class="cell-input heim-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
-			<td class="heim-dwz-cell"><input class="cell-input heim-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
-			<td class="ausw-name-cell"><input class="cell-input ausw-name-input" disabled="disabled" type="text" value="Spieler B" /></td>
-			<td class="ausw-elo-cell"><input class="cell-input ausw-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
-			<td class="ausw-dwz-cell"><input class="cell-input ausw-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
-			<td><select disabled="disabled"><option value="">-</option><option value="1-0">1:0</option><option value="0.5-0.5">0.5 : 0.5</option><option value="0-1">0:1</option> </select></td>
-		</tr>
-		<!-- Beispiel-Brett 1 -->
-		<tr data-board="2">
-			<td>2</td>
-			<td class="heim-name-cell"><input class="cell-input heim-name-input" disabled="disabled" type="text" value="Alber" /></td>
-			<td class="heim-elo-cell"><input class="cell-input heim-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
-			<td class="heim-dwz-cell"><input class="cell-input heim-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
-			<td class="ausw-name-cell"><input class="cell-input ausw-name-input" disabled="disabled" type="text" value="Spieler B" /></td>
-			<td class="ausw-elo-cell"><input class="cell-input ausw-elo-input" disabled="disabled" inputmode="numeric" placeholder="Elo" type="number" /></td>
-			<td class="ausw-dwz-cell"><input class="cell-input ausw-dwz-input" disabled="disabled" inputmode="numeric" placeholder="DWZ" type="number" /></td>
-			<td><select disabled="disabled"><option value="">-</option><option value="1-0">1:0</option><option value="0.5-0.5">0.5 : 0.5</option><option value="0-1">0:1</option> </select></td>
-		</tr>
-		<!-- weitere Bretter ... -->
-	</tbody>
+<table data-kampf-id="2025-runde-1" id="match-table">
+  <!-- Spaltenbreiten: Name breit, Elo/DWZ schmal -->
+  <colgroup>
+    <!-- 1: Brett -->
+    <col style="width:56px;">
+    <!-- 2–4: Heim (Name/Elo/DWZ) -->
+    <col style="width:28%;">    <!-- Heim Name -->
+    <col style="width:72px;">   <!-- Heim Elo -->
+    <col style="width:72px;">   <!-- Heim DWZ -->
+    <!-- 5–7: Auswärts (Name/Elo/DWZ) -->
+    <col style="width:28%;">    <!-- Auswärts Name -->
+    <col style="width:72px;">   <!-- Ausw. Elo -->
+    <col style="width:72px;">   <!-- Ausw. DWZ -->
+    <!-- 8: Ergebnis -->
+    <col style="width:110px;">
+  </colgroup>
+
+  <thead>
+    <tr>
+      <th>Brett</th>
+      <th>Heim</th>
+      <th>Heim Elo</th>
+      <th>Heim DWZ</th>
+      <th>Auswärts</th>
+      <th>Ausw. Elo</th>
+      <th>Ausw. DWZ</th>
+      <th id="admin-trigger" title="5× klicken zum Admin-Login">Ergebnis</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <!-- Kopfzeile: Teamnamen + Gesamt (Team-TDs werden gefärbt) -->
+    <tr>
+      <td>&nbsp;</td>
+      <td id="heim-team" colspan="3" style="font-weight:bold;">
+        <input id="heim-team-input" class="cell-input" type="text" value="SV Hemer 1932" disabled>
+      </td>
+      <td id="auswaerts-team" colspan="3" style="font-weight:bold;">
+        <input id="ausw-team-input" class="cell-input" type="text" value="Augsburg 1932" disabled>
+      </td>
+      <td id="gesamt-ergebnis" style="font-weight:bold;">0 – 0</td>
+    </tr>
+
+    <!-- Beispiel-Brett 1 -->
+    <tr data-board="1">
+      <td>1</td>
+      <td class="heim-name-cell">
+        <input class="cell-input heim-name-input" type="text" value="Alber" disabled>
+      </td>
+      <td class="heim-elo-cell">
+        <input class="cell-input heim-elo-input" type="number" inputmode="numeric" placeholder="Elo" disabled>
+      </td>
+      <td class="heim-dwz-cell">
+        <input class="cell-input heim-dwz-input" type="number" inputmode="numeric" placeholder="DWZ" disabled>
+      </td>
+      <td class="ausw-name-cell">
+        <input class="cell-input ausw-name-input" type="text" value="Spieler B" disabled>
+      </td>
+      <td class="ausw-elo-cell">
+        <input class="cell-input ausw-elo-input" type="number" inputmode="numeric" placeholder="Elo" disabled>
+      </td>
+      <td class="ausw-dwz-cell">
+        <input class="cell-input ausw-dwz-input" type="number" inputmode="numeric" placeholder="DWZ" disabled>
+      </td>
+      <td>
+        <select disabled>
+          <option value="">-</option>
+          <option value="1-0">1:0</option>
+          <option value="0.5-0.5">0.5 : 0.5</option>
+          <option value="0-1">0:1</option>
+        </select>
+      </td>
+    </tr>
+
+    <tr data-board="2">
+      <td>2</td>
+      <td class="heim-name-cell">
+        <input class="cell-input heim-name-input" type="text" value="Lukas" disabled>
+      </td>
+      <td class="heim-elo-cell">
+        <input class="cell-input heim-elo-input" type="number" inputmode="numeric" placeholder="Elo" disabled>
+      </td>
+      <td class="heim-dwz-cell">
+        <input class="cell-input heim-dwz-input" type="number" inputmode="numeric" placeholder="DWZ" disabled>
+      </td>
+      <td class="ausw-name-cell">
+        <input class="cell-input ausw-name-input" type="text" value="Spieler D" disabled>
+      </td>
+      <td class="ausw-elo-cell">
+        <input class="cell-input ausw-elo-input" type="number" inputmode="numeric" placeholder="Elo" disabled>
+      </td>
+      <td class="ausw-dwz-cell">
+        <input class="cell-input ausw-dwz-input" type="number" inputmode="numeric" placeholder="DWZ" disabled>
+      </td>
+      <td>
+        <select disabled>
+          <option value="">–</option>
+          <option value="1-0">1:0</option>
+          <option value="0.5-0.5">0.5 : 0.5</option>
+          <option value="0-1">0:1</option>
+        </select>
+      </td>
+    </tr>
+
+    <!-- weitere Bretter ... -->
+  </tbody>
 </table>
 </div>
 
 <div class="iframe-container">
-<div class="iframe-box">
-<div class="iframe-title">Live-Übertragung</div>
-<iframe src="https://lichess.org/embed/broadcast/iii-festival-internacional-esphouses--irt-sub-1800/round-2/YwyL4K3i" style="width: 100%; aspect-ratio: 4/3;" frameborder="0"; width="600"; height="600"></iframe>
+  <div class="iframe-box">
+    <div class="iframe-title">Live-Übertragung</div>
+    <iframe frameborder="0" src="https://lichess.org/embed/broadcast/iii-festival-internacional-esphouses--irt-sub-1800/round-2/YwyL4K3i" style="width: 100%; aspect-ratio: 4/3;"></iframe>
+  </div>
+</div>
 
-</div><!-- Admin Login -->
+<!-- Admin Login -->
+<div id="admin-login">
+  <input id="admin-password" placeholder="Admin-Passwort" type="password" />
+  <button id="admin-submit">Login</button>
+  <button id="reset-results">Nur Ergebnisse zurücksetzen</button>
+  <button id="hard-reset">ALLES löschen</button>
+</div>
 
-<div id="admin-login"><input id="admin-password" placeholder="Admin-Passwort" type="password" /><button id="admin-submit">Login</button><button id="reset-results" style="display:none;">Reset Ergebnisse</button></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
   // === KONFIG ===
   const SUPABASE_URL = "https://uzddzotzdcduoyglrekg.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6ZGR6b3R6ZGNkdW95Z2xyZWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MzE4NTUsImV4cCI6MjA3MjQwNzg1NX0.3i2KgWx8zGEgHHaFZDNybwrec3Owhajx6tTBI7iiWTA";
@@ -254,15 +338,16 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const table = document.querySelector("#match-table");
+    const tbody = table.querySelector("tbody");
     const gesamt = document.getElementById("gesamt-ergebnis");
     const heimTeamCell = document.getElementById("heim-team");
     const auswTeamCell = document.getElementById("auswaerts-team");
     const heimTeamInput = document.getElementById("heim-team-input");
     const auswTeamInput = document.getElementById("ausw-team-input");
     const resetBtn = document.getElementById("reset-results");
+    const hardResetBtn = document.getElementById("hard-reset");
 
-    const selects = table.querySelectorAll("select");
-    const allInputs = table.querySelectorAll("input.cell-input");
+    const adminTrigger = document.getElementById("admin-trigger");
 
     function resolveKampfId() {
       const qs = new URLSearchParams(location.search);
@@ -278,6 +363,7 @@
     // ===== Helpers =====
     function parseIntOrNull(v) { const n = parseInt(v, 10); return Number.isFinite(n) ? n : null; }
     const rowsNodeList = () => table.querySelectorAll("tbody tr[data-board]");
+    const getDomBoards = () => Array.from(rowsNodeList()).map(tr => Number(tr.dataset.board)).filter(Number.isFinite);
 
     function collectRowData(tr) {
       return {
@@ -295,8 +381,8 @@
     function applyBoardRowToUI(row) {
       const tr = table.querySelector(`tr[data-board="${row.board}"]`);
       if (!tr) return;
-      const setVal = (selector, val) => { const el = tr.querySelector(selector); if (el && val != null) el.value = val; };
-      if (tr.querySelector("select")) tr.querySelector("select").value = row.result ?? tr.querySelector("select").value;
+      const setVal = (selector, val) => { const el = tr.querySelector(selector); if (el != null && val != null) el.value = val; };
+      const sel = tr.querySelector("select"); if (sel) sel.value = row.result ?? sel.value;
       setVal(".heim-name-input", row.home_name);
       setVal(".heim-elo-input",  row.home_elo);
       setVal(".heim-dwz-input",  row.home_dwz);
@@ -336,8 +422,7 @@
 
     // ===== DB: Boards =====
     async function ensureBoardsExist() {
-      const domBoards = Array.from(rowsNodeList())
-        .map(tr => Number(tr.dataset.board)).filter(Number.isFinite);
+      const domBoards = getDomBoards();
       if (domBoards.length === 0) return;
 
       const { data: existing, error: selErr } = await supabaseClient
@@ -345,15 +430,53 @@
       if (selErr) { console.error("[ensureBoardsExist] select:", selErr); return; }
 
       const have = new Set((existing ?? []).map(r => r.board));
-      const missing = [];
+      const missingRows = [];
       rowsNodeList().forEach(tr => {
         const b = Number(tr.dataset.board);
-        if (!have.has(b)) missing.push({ kampf_id: kampfId, ...collectRowData(tr) });
+        if (!have.has(b)) missingRows.push({ kampf_id: kampfId, ...collectRowData(tr) });
       });
-      if (missing.length === 0) return;
+      if (missingRows.length > 0) {
+        const { error: insErr } = await supabaseClient.from("matches").insert(missingRows);
+        if (insErr) console.error("[ensureBoardsExist] insert:", insErr);
+      }
+    }
 
-      const { error: insErr } = await supabaseClient.from("matches").insert(missing);
-      if (insErr) console.error("[ensureBoardsExist] insert:", insErr);
+    async function ensureBoardsExistForBoards(boards) {
+      if (!boards || boards.length === 0) return;
+      const { data: existing, error: selErr } = await supabaseClient
+        .from("matches").select("board").eq("kampf_id", kampfId).in("board", boards);
+      if (selErr) { console.error("[ensureBoardsExistForBoards] select:", selErr); return; }
+      const have = new Set((existing ?? []).map(r => r.board));
+      const toInsert = [];
+      boards.forEach(b => {
+        if (!have.has(b)) {
+          const tr = table.querySelector(`tr[data-board="${b}"]`);
+          if (tr) toInsert.push({ kampf_id: kampfId, ...collectRowData(tr) });
+        }
+      });
+      if (toInsert.length > 0) {
+        const { error: insErr } = await supabaseClient.from("matches").insert(toInsert);
+        if (insErr) console.error("[ensureBoardsExistForBoards] insert:", insErr);
+      }
+    }
+
+    async function pruneDBRowsNotInDOM() {
+      const domBoards = getDomBoards();
+      const { data: existing, error } = await supabaseClient
+        .from("matches").select("board").eq("kampf_id", kampfId);
+      if (error) { console.error("[prune] select:", error); return; }
+      const toDelete = (existing ?? []).map(r => r.board).filter(b => !domBoards.includes(b));
+      if (toDelete.length > 0) {
+        const { error: delErr } = await supabaseClient
+          .from("matches").delete().eq("kampf_id", kampfId).in("board", toDelete);
+        if (delErr) console.error("[prune] delete:", delErr);
+      }
+    }
+
+    async function deleteBoard(board) {
+      const { error } = await supabaseClient
+        .from("matches").delete().eq("kampf_id", kampfId).eq("board", board);
+      if (error) console.error("[deleteBoard]", error);
     }
 
     async function loadBoards() {
@@ -427,35 +550,36 @@
       }
     }
 
-    // ===== Events =====
-    // Ergebnis-Selects
-    selects.forEach((sel) => {
-      sel.addEventListener("change", () => {
-        updateGesamt();
-        if (!isAdmin) return;
-        const board = Number(sel.closest("tr").dataset.board);
-        if (Number.isFinite(board)) saveBoardRow(board);
-      });
-    });
-
-    // Alle Inputs (Namen/Elo/DWZ)
-    allInputs.forEach((inp) => {
-      inp.addEventListener("change", () => {
-        if (!isAdmin) return;
-        const tr = inp.closest("tr[data-board]");
-        if (tr) {
+    // ===== Listeners an Zeilen hängen =====
+    function attachRowListeners(tr) {
+      const sel = tr.querySelector("select");
+      if (sel && !sel._attached) {
+        sel.addEventListener("change", () => {
+          updateGesamt();
+          if (!isAdmin) return;
           const board = Number(tr.dataset.board);
           if (Number.isFinite(board)) saveBoardRow(board);
+        });
+        sel._attached = true;
+      }
+      const inputs = tr.querySelectorAll("input.cell-input");
+      inputs.forEach(inp => {
+        if (!inp._attached) {
+          inp.addEventListener("change", () => {
+            if (!isAdmin) return;
+            const board = Number(tr.dataset.board);
+            if (Number.isFinite(board)) saveBoardRow(board);
+          });
+          inp._attached = true;
         }
       });
-    });
+    }
 
-    // Teamnamen
-    heimTeamInput.addEventListener("change", () => { if (isAdmin) saveHeader(); });
-    auswTeamInput.addEventListener("change", () => { if (isAdmin) saveHeader(); });
+    function attachAllRowListeners() {
+      rowsNodeList().forEach(attachRowListeners);
+    }
 
-    // 5× Klick → Admin
-    const adminTrigger = document.getElementById("admin-trigger");
+    // ===== Admin-Login nach 5 Klicks =====
     adminTrigger.addEventListener("click", () => {
       clickCount++;
       if (clickCount >= 5) {
@@ -468,42 +592,71 @@
       const pwd = document.getElementById("admin-password").value;
       if (pwd === ADMIN_PASSWORD) {
         isAdmin = true;
-        selects.forEach(s => s.disabled = false);
-        allInputs.forEach(i => i.disabled = false);
+        // Felder freischalten
+        rowsNodeList().forEach(tr => {
+          tr.querySelectorAll("select, input.cell-input").forEach(el => el.disabled = false);
+        });
         resetBtn.style.display = "inline-block";
+        hardResetBtn.style.display = "inline-block";
         alert("Admin-Modus aktiviert ✅");
       } else {
         alert("Falsches Passwort ❌");
       }
     });
 
-    // Reset
+    // ========= Reset NUR Ergebnisse =========
     resetBtn.addEventListener("click", async () => {
-      if (!confirm("Alle Ergebnisse für diesen Kampf wirklich zurücksetzen?")) return;
+      if (!confirm("Nur die Ergebnisse (alle Bretter) für diesen Kampf zurücksetzen?")) return;
+      resetBtn.disabled = true;
+
+      const { error } = await supabaseClient
+        .from("matches")
+        .update({ result: null })
+        .eq("kampf_id", kampfId);
+
+      if (error) {
+        console.error("[reset results] error:", error);
+        alert("Konnte die Ergebnisse nicht zurücksetzen.");
+        resetBtn.disabled = false;
+        return;
+      }
+
+      // UI sofort updaten
+      rowsNodeList().forEach(tr => {
+        const sel = tr.querySelector('select');
+        if (sel) sel.value = "";
+      });
+      updateGesamt();
+
+      resetBtn.disabled = false;
+    });
+
+    // ========= Hard Reset (ALLES löschen) =========
+    hardResetBtn.addEventListener("click", async () => {
+      if (!confirm("Wirklich ALLES (Spieler, Elo, DWZ, Ergebnisse, Teams) für diesen Kampf löschen?")) return;
+      hardResetBtn.disabled = true;
 
       const { error: e1 } = await supabaseClient.from("matches").delete().eq("kampf_id", kampfId);
       const { error: e2 } = await supabaseClient.from("match_headers").delete().eq("kampf_id", kampfId);
-      if (e1 || e2) { console.error("[reset] error:", e1 || e2); return; }
+      if (e1 || e2) {
+        console.error("[hard reset] error:", e1 || e2);
+        alert("Fehler beim kompletten Löschen.");
+        hardResetBtn.disabled = false;
+        return;
+      }
 
-      // UI zurücksetzen
+      // UI optisch zurücksetzen
       rowsNodeList().forEach(tr => {
-        const nameH = tr.querySelector(".heim-name-input");
-        const nameA = tr.querySelector(".ausw-name-input");
-        if (nameH) nameH.value = nameH.getAttribute("value") || "";
-        if (nameA) nameA.value = nameA.getAttribute("value") || "";
-        ["heim-elo-input","heim-dwz-input","ausw-elo-input","ausw-dwz-input"].forEach(cls => {
-          const el = tr.querySelector(`.${cls}`); if (el) el.value = "";
-        });
+        tr.querySelectorAll(".heim-elo-input,.heim-dwz-input,.ausw-elo-input,.ausw-dwz-input").forEach(el => el.value = "");
         const sel = tr.querySelector("select"); if (sel) sel.value = "";
       });
-      heimTeamInput.value = heimTeamInput.getAttribute("value") || heimTeamInput.value;
-      auswTeamInput.value = auswTeamInput.getAttribute("value") || auswTeamInput.value;
-
       updateGesamt();
 
-      // DB wieder vorbereiten
+      // Header neu anlegen (behalten ihre Input-Werte)
       await ensureHeaderExists();
       await ensureBoardsExist();
+
+      hardResetBtn.disabled = false;
     });
 
     // ===== Realtime (optional) =====
@@ -521,17 +674,65 @@
           () => loadHeader())
       .subscribe();
 
+    // ===== MutationObserver: Zeilen hinzufügen/entfernen =====
+    const observer = new MutationObserver(async (mutations) => {
+      let addedBoards = [];
+      let removedBoards = [];
+      mutations.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType === 1 && node.matches?.('tr[data-board]')) {
+            const b = Number(node.getAttribute('data-board'));
+            if (Number.isFinite(b)) addedBoards.push(b);
+            attachRowListeners(node);
+          }
+        });
+        m.removedNodes.forEach(node => {
+          if (node.nodeType === 1 && node.matches?.('tr[data-board]')) {
+            const b = Number(node.getAttribute('data-board'));
+            if (Number.isFinite(b)) removedBoards.push(b);
+          }
+        });
+      });
+
+      // Neu hinzugefügte Bretter in DB anlegen (falls fehlen)
+      if (addedBoards.length) {
+        await ensureBoardsExistForBoards(Array.from(new Set(addedBoards)));
+      }
+
+      // Entfernte Bretter aus DB löschen
+      for (const b of Array.from(new Set(removedBoards))) {
+        await deleteBoard(b);
+      }
+
+      // Sicherheit: DB-Zeilen, die nicht mehr im DOM existieren, wegräumen
+      await pruneDBRowsNotInDOM();
+
+      // Punkte neu berechnen
+      updateGesamt();
+    });
+
+    observer.observe(tbody, { childList: true });
+
     // ===== Initial Load =====
     (async () => {
+      // Header + Boards absichern
       await ensureHeaderExists();
       await ensureBoardsExist();
+
+      // Bestehende Zeilen-Listener setzen
+      attachAllRowListeners();
+
+      // DB laden -> UI füllen
       await loadHeader();
       await loadBoards();
+
+      // DB aufräumen: alles löschen, was nicht mehr im DOM existiert
+      await pruneDBRowsNotInDOM();
+
+      // Punkte/Markierungen initial berechnen
       updateGesamt();
     })();
   });
-</script></div>
+</script>
 </body>
 </html>
-
-
