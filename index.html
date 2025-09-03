@@ -207,11 +207,23 @@
       margin-left: 8px;
       display: none;
     }
-    /* Linie zwischen Spalte 1 (Brett) und Spalte 2 (Heim) wieder sichtbar machen */
-    thead th:first-child { border-right: 1px solid #8f6e66 !important; }
-    tbody td:first-child { border-right: 1px solid #A2847A !important; }
-    /* Pseudo-Linie im Header an der Stelle aus, damit es nicht doppelt wirkt */
-    thead th:first-child::after { display: none !important; }
+   /* Trennlinie zwischen Spalte 1 (Brett) und 2 (Heim) wieder einschalten */
+thead th:first-child,
+tbody td:first-child {
+  border-right: 1px solid #A2847A !important;
+}
+
+/* Falls du irgendwo border-left an Spalte 2 ausgeschaltet hast: wieder an */
+thead th:nth-child(2),
+tbody td:nth-child(2) {
+  border-left: 1px solid #A2847A !important;
+}
+
+/* Damit im Header nicht doppelt (Pseudo-Linie + Border) angezeigt wird */
+thead th:first-child::after {
+  display: none !important;
+}
+
 
   </style>
 </head>
@@ -781,6 +793,7 @@
 </script>
 </body>
 </html>
+
 
 
 
