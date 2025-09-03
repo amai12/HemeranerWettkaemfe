@@ -215,9 +215,12 @@ tbody td:first-child {
 
 /* Falls du irgendwo border-left an Spalte 2 ausgeschaltet hast: wieder an */
 thead th:nth-child(2),
-tbody td:nth-child(2) {
-  border-left: 1px solid #A2847A !important;
+/* Extra starke Trennlinie nach Spalte 2 (Heim Name) */
+thead th:nth-child(2)::after {
+  width: 2px;
+  background: rgba(255, 255, 255, 0.85);
 }
+
 
 /* Damit im Header nicht doppelt (Pseudo-Linie + Border) angezeigt wird */
 thead th:first-child::after {
@@ -304,7 +307,7 @@ thead th:first-child::after {
     </tr>
         <!-- Beispiel-Brett 1 -->
     <tr data-board="2">
-      <td>1</td>
+      <td>2</td>
       <td class="heim-name-cell">
         <input class="cell-input heim-name-input" type="text" value="Alber" disabled>
       </td>
@@ -334,7 +337,7 @@ thead th:first-child::after {
     </tr>
         <!-- Beispiel-Brett 1 -->
     <tr data-board="3">
-      <td>2.</td>
+      <td>3.</td>
       <td class="heim-name-cell">
         <input class="cell-input heim-name-input" type="text" value="Alber" disabled>
       </td>
@@ -793,6 +796,7 @@ thead th:first-child::after {
 </script>
 </body>
 </html>
+
 
 
 
